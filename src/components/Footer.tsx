@@ -1,6 +1,7 @@
 import CustomLink from '@/components/CustomLink';
 import SocialIcon from '@/components/SocialIcon';
 import { footerConfigs } from '@/configs/footerConfigs';
+import { siteConfigs } from '@/configs/siteConfigs';
 
 export default function Footer() {
   return (
@@ -23,7 +24,9 @@ export default function Footer() {
           <SocialIcon kind="twitter" href={footerConfigs.socialLinks.twitter} />
         </div>
         <div className="mb-8 flex space-x-2 text-sm text-gray-500 transition-colors dark:text-gray-400">
-          <div>{`Copyright © 2015 - ${new Date().getFullYear()}`}</div>
+          <div>{`Copyright © ${new Date(
+            siteConfigs.datePublished
+          ).getFullYear()} - ${new Date().getFullYear()}`}</div>
           <CustomLink href="/">{footerConfigs.credit}</CustomLink>
         </div>
       </div>
