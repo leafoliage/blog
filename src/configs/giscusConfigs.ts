@@ -1,6 +1,6 @@
 export const giscusConfigs = {
-  repo: 'https://github.com/leafoliage/blog' as `${string}/${string}`,
-  repoId: 'R_kgDOH5XSVA',
+  repo: 'leafoliage/blog' as `${string}/${string}`,
+  repoId: 'R_kgDOI38VBw',
   category: 'Announcements',
-  categoryId: 'DIC_kwDOH5XSVM4CRfr0',
+  categoryId: 'DIC_kwDOI38VB84CUBV2',
 };
