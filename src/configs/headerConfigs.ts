@@ -1,4 +1,4 @@
 export const headerConfigs = {
   title: 'Leafoliage',
-  navLinks: [{ href: '/', title: 'home' }],
+  navLinks: [{ href: 'https://leafoliage.github.io', title: 'home' }],
 };
