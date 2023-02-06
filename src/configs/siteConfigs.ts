@@ -15,5 +15,5 @@ export const siteConfigs = {
   bannerPath: bannerPath,
   bannerUrl: fqdn + bannerPath,
   twitterID: '@leafoliage',
-  datePublished: '2023-01-23',
+  datePublished: '2023-01-31',
 };
