@@ -1,0 +1,84 @@
+---
+title: "如何解決 Borg AssertionError: cleanup happened in Repository"
+description: "Solving 'AssertionError: cleanup happened in Repository' and 'PermissionError: Permission denied"
+slug: how-to-fix-borg-ownership-error
+date: 2023-02-14
+type: Post
+---
+
+# AssertionError 和 PermissionError
+
+昨天在使用 borg 備份時，borg 回報了以下錯誤：
+
+**AssertionError: cleanup happened in Repository**
+**PermissionError: Permission denied**
+
+不管使用哪個 borg 指令都無法執行，一定會跳出這個錯誤。
+
+```
+$ borg info /path/to/repo
+Exception ignored in: <function Repository.__del__ at 0x7fb7dcd96520>
+Traceback (most recent call last):
+  File "/usr/lib64/python3.11/site-packages/borg/repository.py", line 190, in __del__
+    assert False, "cleanup happened in Repository.__del__"
+AssertionError: cleanup happened in Repository.__del__
+Local Exception
+Traceback (most recent call last):
+--snip--
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+--snip--
+PermissionError: [Errno 13] Permission denied: '/home/leif/.borg-repo/data/0/183'
+```
+
+## 為什麼發生錯誤？
+
+會出這個錯是因為我用了不同的 user 執行 borg 指令。我原本都是使用一般 user 做備份，但是昨天備份時使用了 `sudo` ，結果讓 borg 產生了檔案權限的混淆。
+
+檢查 borg repo 資料夾裡面檔案的權限資訊
+
+```
+ls -l /path/to/repo
+```
+
+會發現裡面的許多資料都被改為 root 擁有，因而產生權限錯誤
+
+```
+-rw------- 1 leif leif     964 Jan  6 14:33 config
+drwx------ 1 leif leif       2 Jan  6 14:33 data
+-rw------- 1 root root   11445 Feb 13 21:19 hints.187
+-rw------- 1 root root 5244058 Feb 13 21:19 index.187
+-rw------- 1 root root     190 Feb 13 21:19 integrity.187
+-rw------- 1 root root      16 Feb 13 21:19 nonce
+-rw------- 1 leif leif      73 Jan  6 14:33 README
+```
+
+事實上，如果改以 `sudo` 執行 borg 指令，會發現 borg 指令又能正常執行了
+
+```
+$ sudo borg info /path/to/repo
+Enter passphrase for key /path/to/repo:
+```
+
+## 解決方法
+
+如果不小心以不同的使用者做 borg 備份而遇到了這個錯誤，不用太擔心，解決方法很簡單。只要把 borg repo 內檔案的所有權更改回來即可。更改回來後，borg 不需要加 `sudo` 也能正常執行。
+
+```
+chown -R originalUser:originalUser /path/to/repo
+```
+
+另外，除了檢查 borg repo 本身，也建議檢查一下 `~/.cache/borg` 和 `~/.config/borg` 裡頭的檔案權限喔。（不過根據筆者的狀況，這兩個地方並沒有遭到修改）
+
+最後請記得：使用 borg 備份時，**不要使用不同的使用者！**
+
+以上，如果有任何建議或指正，歡迎留言告訴我！
+
+## 參考資料
+[AssertionError & PermissionError #3894 (Github)](https://github.com/borgbackup/borg/issues/3894)
+[Accidentally ran Borg script with "sudo." Now Borg gives error if I run borg command on repo without "sudo." (Reddit)](https://www.reddit.com/r/BorgBackup/comments/v53a6h/accidentally_ran_borg_script_with_sudo_now_borg/)
+[Reddit\Borgbackup and sudo (Reddit)](https://www.reddit.com/r/linuxquestions/comments/fgru03/borgbackup_and_sudo/)
+[Can I safely change ownership of the files inside a borg repo? #4126 (Github)](https://github.com/borgbackup/borg/issues/4126)
+[as root on posix try to retain repository owner uid/umask #1869 (Github)](https://github.com/borgbackup/borg/issues/1869)
