@@ -1,6 +1,6 @@
 ---
 title: "如何解決 Borg AssertionError: cleanup happened in Repository"
-description: "Solving 'AssertionError: cleanup happened in Repository' and 'PermissionError: Permission denied"
+description: "[黑手系列] 解決 Borg 的所有權混淆問題"
 slug: how-to-fix-borg-ownership-error
 date: 2023-02-14
 type: Post
@@ -10,8 +10,8 @@ type: Post
 
 昨天在使用 borg 備份時，borg 回報了以下錯誤：
 
-**AssertionError: cleanup happened in Repository**
-**PermissionError: Permission denied**
+1. **AssertionError: cleanup happened in Repository**
+2. **PermissionError: Permission denied**
 
 不管使用哪個 borg 指令都無法執行，一定會跳出這個錯誤。
 
@@ -53,6 +53,7 @@ drwx------ 1 leif leif       2 Jan  6 14:33 data
 -rw------- 1 root root     190 Feb 13 21:19 integrity.187
 -rw------- 1 root root      16 Feb 13 21:19 nonce
 -rw------- 1 leif leif      73 Jan  6 14:33 README
+// 應該都要是 leif leif 才對！
 ```
 
 事實上，如果改以 `sudo` 執行 borg 指令，會發現 borg 指令又能正常執行了
@@ -77,8 +78,9 @@ chown -R originalUser:originalUser /path/to/repo
 以上，如果有任何建議或指正，歡迎留言告訴我！
 
 ## 參考資料
-[AssertionError & PermissionError #3894 (Github)](https://github.com/borgbackup/borg/issues/3894)
-[Accidentally ran Borg script with "sudo." Now Borg gives error if I run borg command on repo without "sudo." (Reddit)](https://www.reddit.com/r/BorgBackup/comments/v53a6h/accidentally_ran_borg_script_with_sudo_now_borg/)
-[Reddit\Borgbackup and sudo (Reddit)](https://www.reddit.com/r/linuxquestions/comments/fgru03/borgbackup_and_sudo/)
-[Can I safely change ownership of the files inside a borg repo? #4126 (Github)](https://github.com/borgbackup/borg/issues/4126)
-[as root on posix try to retain repository owner uid/umask #1869 (Github)](https://github.com/borgbackup/borg/issues/1869)
+
+* [AssertionError & PermissionError #3894 (Github)](https://github.com/borgbackup/borg/issues/3894)
+* [Accidentally ran Borg script with "sudo." Now Borg gives error if I run borg command on repo without "sudo." (Reddit)](https://www.reddit.com/r/BorgBackup/comments/v53a6h/accidentally_ran_borg_script_with_sudo_now_borg/)
+* [Reddit\Borgbackup and sudo (Reddit)](https://www.reddit.com/r/linuxquestions/comments/fgru03/borgbackup_and_sudo/)
+* [Can I safely change ownership of the files inside a borg repo? #4126 (Github)](https://github.com/borgbackup/borg/issues/4126)
+* [as root on posix try to retain repository owner uid/umask #1869 (Github)](https://github.com/borgbackup/borg/issues/1869)
