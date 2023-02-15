@@ -1,5 +1,5 @@
 ---
-title: "Tackling BTRFS parent transid verify failure"
+title: "Tackling BTRFS Parent Transid Verify Failure"
 description: "[黑手系列] 嘗試解決 transid verify fail 的一些方法"
 slug: tackling-btrfs-transid-verify-failure
 date: 2023-02-14
@@ -23,11 +23,13 @@ BTRFS error (device nvme1n1p4: state EA): open_ctree failed
 
 根據 BTRFS 的[官方文件](https://btrfs.readthedocs.io/en/latest/trouble-index.html#error-parent-transid-verify-error)，這個錯誤的意思是：在儲存資料的樹狀結構中，其中一個父節點紀錄的 `transaction id` 和子節點紀錄的 `transaction id` 不一致（意味著父子節點的資料版本不一樣）。上面的例子 `wanted 16561 found 16564` 中，`16561` 代表父節點紀錄的 `id`，`16564` 代表子節點紀錄的 `id`。通常子節點的 `id` 會小於等於父節點的版本 `id`。
 
+> 每當記憶體中 BTRFS 的資料被 flush 到硬碟中儲存，就稱為一次 `transaction`
+
 發生這個錯誤的可能原因有很多，以下是[官方文件](https://btrfs.readthedocs.io/en/latest/trouble-index.html#error-parent-transid-verify-error)和[官方維基](https://btrfs.wiki.kernel.org/index.php/FAQ#How_do_I_recover_from_a_.22parent_transid_verify_failed.22_error.3F)提供的幾個可能性：
 
 * 系統沒有正確的更新、儲存資料結構
 * 資料儲存被儲存到硬體中錯誤的位子，甚至覆寫了其他資料
-* 硬體沒有遵守 Flush/FUA 規則，沒有正確的儲存 RAM 中的資料
+* 硬體沒有遵守規則 （e.g. FUA），沒有正確的儲存 RAM 中的資料
 * 資料儲存過程中電力中斷
 * 資料在儲存前（在 RAM 裡）遭到篡改
 * 檔案系統底層發生的錯誤
@@ -36,7 +38,7 @@ BTRFS error (device nvme1n1p4: state EA): open_ctree failed
 
 ## 求助管道
 
-BTRFS 有自己的 IRC 頻道，可以去那裡發問，會有人幫助你。（筆者自己覺得他們還算友善，不過能幫忙的專家不一定隨時都能上線，有時候會需要等一下喔）新手入門可以看[這篇](https://fedoramagazine.org/beginners-guide-irc/)。
+BTRFS 有自己的 IRC 頻道，可以去那裡發問，會有人幫助你。（筆者自己覺得他們還算友善，不過能幫忙的專家不一定隨時都能上線，有時候會需要等一下喔）IRC入門可以看[這篇](https://fedoramagazine.org/beginners-guide-irc/)。
 
 ## 解決方法
 
@@ -46,9 +48,9 @@ BTRFS 有自己的 IRC 頻道，可以去那裡發問，會有人幫助你。（
 
 在修復檔案系統前，建議先把能救的資料救出來，因為之後的指令會修改檔案系統，也就會動到資料內容。
 
-先插入一個 usb，並設法找到 usb 裝置名（筆者不太記得哪些指令在 rescue mode 能用了 QQ，可以先試試 `df`，不行再試試 `mount`）
+先插入一個 usb，並用 `parted`、`df` 或 `mount` 找到 usb 設備名稱
 
-接著再用 `btrfs restore` 把資料救出來
+將 usb 掛載後，再用 `btrfs restore` 把資料救出來
 
 ```
 mount /dev/sda1 ~
