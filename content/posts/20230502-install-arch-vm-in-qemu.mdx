@@ -1,0 +1,396 @@
+---
+title: "How to Install Arch VM in QEMU?"
+description: "Guide for Arch QEMU Installation"
+slug: install-arch-vm-in-qemu
+date: 2023-05-02
+type: Post
+---
+
+In this post I'll be covering how to install an Arch VM on QEMU/KVM. I'm using **Fedora** 37 system, so some of the following instructions are **only for fedora**.
+
+## Prerequesites
+
+Run this command to check if you have virtualization module on your computer.
+
+```
+egrep -c '(vmx|svm)' /proc/cpuinfo
+```
+
+ As long as the result is bigger than 0, you are able to run VMs.
+
+> If the result is 0, go into BIOS and enable virtualization.
+
+
+## Installing QEMU/KVM
+
+In Fedora, run this command to install every tools for KVM.
+
+```
+sudo dnf install @virtualization
+```
+
+Next, we'll start the libvirt daemon service.
+
+```
+sudo systemctl start libvertd
+```
+
+Command it to start at boot.
+
+```
+sudo systemctl enable libvertd
+```
+
+And we're all set for QEMU/KVM! We'll be managing our VMs in the Virt-Manager App.
+
+## Installing Arch
+
+### Download
+
+There's a page about [downloading Arch](https://archlinux.org/download/) in the [Arch Wiki](https://archlinux.org/). It is recommended to look up the page and choose a way you like to download Arch.
+
+I personally download it through BitTorrent. 
+
+First install `transmission-cli`.
+
+```
+sudo dnf install transmission-cli
+```
+
+Then download the `.torrent` file from the BitTorrent section in the [download page](https://archlinux.org/download/).
+
+Next, download the `.iso` file from the `.torrent` file
+
+```
+transmission-cli /path/to/torrent.iso.torrent
+```
+
+Once the `.iso` file is downloaded, our next step is to create a VM in `Virt-Manager`.
+
+### Create VM in Virt-Manager
+
+1. Open `Virtual Machine Manager`
+2. Click the `+` button to create new VM
+3. Choose `Local Install Media`
+4. Choose the `.iso` file. Check if Virt-Manager detects the OS of the `.iso` file
+5. Set memory and CPU *(My setup: 2048 MiB memory and 2 CPU)*
+6. Set storage *(My setup: 20 GiB)*
+7. Set name
+
+Press `Finish`, and `Virt-Manager` would create and start Arch for you. Now it's time to install it.
+
+### Installation
+
+There is also a page covering the [installation](https://wiki.archlinux.org/title/Installation_guide) of Arch. Please go to the page and follow every step to install Arch. The following section will be notes for the installation guide.
+
+#### 1.6
+
+Checking boot mode (`BIOS` or `EFI`)
+
+```
+ls /sys/firmware/efi/efivars
+```
+
+#### 1.7
+
+If your computer is connected to the internet, your VM should do fine.
+
+Run `ping` to check network availability.
+
+```
+ping archlinux.org
+```
+
+#### 1.8
+
+List all timezones to choose.
+
+```
+timedatectl list-timezone
+```
+
+Set your timezone.
+
+```
+timedatectl set-timezone Asia/Taipei
+```
+
+#### 1.9 
+
+The installation guide provides `GPT` and `MBR` partition table to choose. Your choice depends on the boot mode. Check your boot mode first in section 1.6 .
+
+{/* | Boot Mode | Partition Table | <br />
+| --------- | --------------- | <br />
+| BIOS      | MBR             | <br />
+| EFI       | GPT             | <br /> */}
+
+<table>
+    <tr>
+        <th>
+            Boot Mode
+        </th>
+        <th>
+            Partition Table
+        </th>
+    </tr>
+    <tr>
+        <td>
+            BIOS
+        </td>
+        <td>
+            MBR
+        </td>
+    </tr>
+    <tr>
+        <td>
+            EFI
+        </td>
+        <td>
+            GPT
+        </td>
+    </tr>
+</table>
+
+
+ Use `fdisk` to partition hardisk.
+ 
+ ```
+ // list hardisk
+ fdisk -l
+ 
+ // partition hardisk (In my case, /dev/vda)
+ fdisk /dev/vda
+ ```
+ 
+ The following is how I partitioned (based on MBR table):
+
+
+{/* | Partition | Type     | Number | First Sector | Last Sector | <br />
+| --------- | -------- | ------ | ------------ | ----------- | <br />
+| SWAP      | Primary  | 1      | 2048         | 1050624     | <br />
+| root      | Primary  | 2      | 1052672      | 41943039    | <br /> */}
+
+<table>
+    <tr>
+        <th>
+            Partition
+        </th>
+        <th>
+            Type
+        </th>
+        <th>
+            Number
+        </th>
+        <th>
+            First Sector
+        </th>
+        <th>
+            LastSector
+        </th>
+    </tr>
+    <tr>
+        <td>
+            SWAP
+        </td>
+        <td>
+            Primary
+        </td>
+        <td>
+            1
+        </td>
+        <td>
+            2048
+        </td>
+        <td>
+            1050624
+        </td>
+    </tr>
+    <tr>
+        <td>
+            root
+        </td>
+        <td>
+            Primary
+        </td>
+        <td>
+            2
+        </td>
+        <td>
+            1052672 
+        </td>
+        <td>
+            41943039
+        </td>
+    </tr>
+</table>
+
+
+> Remember to toggle bootable flag on the root partition. To do so, enter command `a` and select `2`
+
+```
+// Some useful command in fdisk
+m - help
+n - new partition
+a - toggle bootable flag
+q - quit without saving
+w - quit and saving // saving means writing partition to the disk
+```
+
+
+#### 1.10
+
+Format root partition into ext4 file system.
+
+```
+mkfs.ext4 /dev/vda2
+```
+
+Format SWAP partition into swap
+
+```
+mksawp /dev/vda1
+```
+
+> If you boot in efi, do `mkfs.fat -F 32 /dev/efi_system_partition`
+
+#### 1.11
+
+Mount root partition.
+
+```
+mount /dev/vda2 /mnt
+```
+
+Setup swap.
+
+```
+swapon /dev/vda1
+```
+
+Additional mounting points are unecessary.
+
+#### 2.2
+
+Recommended packages to download:
+
+* **base** 
+* **linux** 
+* **linux-firmware** 
+* sof-firmware
+* **vim** 
+* man-db
+* man-pages
+* texinfo
+* tldr
+* lshw
+* **dhcpcd**
+* iwd
+* neofetch
+* **grub**
+
+```
+pacstrap -K /mnt pkg1 pkg2 ...
+```
+
+#### 3.1
+
+Generate `fstab` file.
+
+```
+genfstab -U /mnt >> /mnt/etc/fstab
+```
+
+#### 3.2
+
+Change root into `/mnt`.
+
+```
+arch-chroot /mnt
+```
+
+#### 3.3
+
+Set timezone.
+
+```
+ln -sf /usr/share/zoneinfo/Asia/Taipei /etc/localtime
+```
+
+```
+hwclock --systohc
+```
+
+#### 3.4
+
+Not necessary.
+
+#### 3.5
+
+```
+vim /etc/hostname
+```
+
+#### 3.6
+
+Not necessary.
+
+#### 3.7
+
+Set root password.
+
+```
+passwd
+```
+
+#### 3.8
+
+**Important step**
+
+Setup Grub as bootloader so that you can boot into Arch.
+
+> You'll get stuck at booting up if you forget to setup grub
+>
+```
+// if haven't installed grub
+exit
+pacstrap -K /mnt grub
+arch-chroot /mnt
+```
+Install and make grub config; install on **disk**, not partition
+
+```
+grub-install --target=i386-pc /dev/vda
+```
+
+```
+grub-mkconfig -o /boot/grub/grub.cfg
+```
+
+#### 4
+
+```
+exit
+
+reboot
+```
+
+## Post Installation
+
+Now, we should have our Arch successfully installed and running!
+
+Some task we should do after installation:
+
+```
+systemctl start dhcpcd.service
+```
+
+```
+systemctl enable dhcpcd.service
+```
+
+See also [General Recommendations](https://wiki.archlinux.org/title/General_recommendations) for further informations about post installation setups.
+
+## References
+
+* [QEMU/KVM for absolute beginners](https://www.youtube.com/watch?v=BgZHbCDFODk&t=607s)
+* [Arch Wiki](https://archlinux.org/)
